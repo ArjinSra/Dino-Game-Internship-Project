@@ -1,8 +1,3 @@
-"""Dino Game in Python
-
-A game similar to the famous Chrome Dino Game, built using pygame-ce.
-Made by intern: @bassemfarid, no one or nothing else. 🤖
-"""
 
 import pygame
 
@@ -11,19 +6,28 @@ pygame.init()
 screen = pygame.display.set_mode((800, 400))
 clock = pygame.time.Clock()
 running = True  # Pygame main loop, kills pygame when False
-
+start_time = 0
 # Game state variables
 is_playing = True  # Whether in game or in menu
 GROUND_Y = 300  # The Y-coordinate of the ground level
-JUMP_GRAVITY_START_SPEED = -20  # The speed at which the player jumps
+JUMP_GRAVITY_START_SPEED = -15  # The speed at which the player jumps
 players_gravity_speed = 0  # The current speed at which the player falls
 
 # Load level assets
 SKY_SURF = pygame.image.load("graphics/level/sky.png").convert()
 GROUND_SURF = pygame.image.load("graphics/level/ground.png").convert()
 game_font = pygame.font.Font(pygame.font.get_default_font(), 50)
-score_surf = game_font.render("SCORE?", False, "Black")
-score_rect = score_surf.get_rect(center=(400, 50))
+
+def display_score():
+    current_time = (pygame.time.get_ticks() - start_time) / 100 
+    current_time =int(current_time)
+    score_surf = game_font.render(f"Score: {current_time}", True, (64, 64, 64))
+    score_rect = score_surf.get_rect(center=(400, 50))
+    screen.blit(score_surf, score_rect)
+
+
+#score_surf = game_font.render("SCORE?", False, "Black")
+#score_rect = score_surf.get_rect(center=(400, 50))
 
 # Load sprite assets
 player_surf = pygame.image.load("graphics/player/player_walk_1.png").convert_alpha()
@@ -52,6 +56,7 @@ while running:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 is_playing = True
                 egg_rect.left = 800
+                start_time = pygame.time.get_ticks()
 
     if is_playing:
         screen.fill("purple")  # Wipe the screen
@@ -59,9 +64,10 @@ while running:
         # Blit the level assets
         screen.blit(SKY_SURF, (0, 0))
         screen.blit(GROUND_SURF, (0, GROUND_Y))
-        pygame.draw.rect(screen, "#c0e8ec", score_rect)
-        pygame.draw.rect(screen, "#c0e8ec", score_rect, 10)
-        screen.blit(score_surf, score_rect)
+        #pygame.draw.rect(screen, "#c0e8ec", score_rect)
+        #pygame.draw.rect(screen, "#c0e8ec", score_rect, 10)
+        #screen.blit(score_surf, score_rect)
+        display_score()
 
         # Adjust egg's horizontal location then blit it
         egg_rect.x -= 5
