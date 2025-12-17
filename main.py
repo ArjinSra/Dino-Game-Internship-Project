@@ -7,11 +7,20 @@ screen = pygame.display.set_mode((800, 400))
 clock = pygame.time.Clock()
 running = True  # Pygame main loop, kills pygame when False
 start_time = 0
+game_font = pygame.font.Font(pygame.font.get_default_font(), 50)
 # Game state variables
-is_playing = True  # Whether in game or in menu
+is_playing = False  # Whether in game or in menu
 GROUND_Y = 300  # The Y-coordinate of the ground level
 JUMP_GRAVITY_START_SPEED = -15  # The speed at which the player jumps
 players_gravity_speed = 0  # The current speed at which the player falls
+ 
+ #Creating the Intro Screen
+start_player = pygame.image.load("graphics/player/start_player.png")
+start_player = pygame.transform.scale(start_player, (160,180))
+start_player_rect = start_player.get_rect(center = (400, 200))
+start_text = game_font.render("Press the space bar or mouse to start!", False, "Green")
+start_text_rect = start_text.get_rect(center = (400,50))
+
 
 # Load level assets
 SKY_SURF = pygame.image.load("graphics/level/sky.png").convert()
@@ -88,7 +97,9 @@ while running:
 
     # When game is over, display game over message
     else:
-        screen.fill("black")
+        screen.fill("white")
+        screen.blit(start_player, start_player_rect)
+        screen.blit(start_text, start_text_rect)
 
     # flip the display to put your work on screen
     pygame.display.flip()
