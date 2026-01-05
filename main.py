@@ -27,10 +27,6 @@ def player_animations():
         player_surf = player_run[int(player_index)]
     
 
-
-
-
-
 is_playing = False
 GROUND_Y = 300
 JUMP_GRAVITY_START_SPEED = -22
@@ -43,11 +39,16 @@ boulder_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(boulder_timer, 1500)
 
 def obstacles():
-    global boulder_timer, boulder_surf 
-    new_boulder_rect = boulder_surf.get_rect(bottomleft=(randint(900, 1100), 312))
-    boulder_rect_list.append(new_boulder_rect)
-    # Reset the timer to a random interval for the next egg
-    pygame.time.set_timer(boulder_timer, randint(1000, 1800))
+    global boulder_timer
+    # 50/50 chance which obstacle spawns
+    if randint(0,1) == 0:
+        new_rect = boulder_surf.get_rect(bottomleft=(randint(900, 1100), 312))
+        boulder_rect_list.append(new_rect)
+    else:
+        new_rect = spear_surf.get_rect(center=(randint(900,1100), SPEAR_Y))
+        spear_list.append(new_rect)
+    pygame.time.set_timer(boulder_timer, randint(900, 1600))
+
 
 # Intro Screen
 start_player = pygame.image.load("graphics/player/start_player.png")
@@ -72,6 +73,7 @@ death_effect_rect = death_effect.get_rect(center=(400, 200))
 dungeon_background = pygame.image.load("graphics/level/dungeon_background.png").convert()
 dungeon_background = pygame.transform.scale(dungeon_background, (800,400))
 
+# player images
 player_run1 = pygame.image.load("graphics/player/player1.png").convert_alpha()
 player_run1 = pygame.transform.scale(player_run1, (100,100))
 player_run2 = pygame.image.load("graphics/player/player2.png").convert_alpha()
@@ -82,10 +84,18 @@ player_jump = pygame.transform.scale(player_jump, (100,100))
 player_run = [player_run1, player_run2]
 player_index = 0
 player_surf = player_run[player_index]
+player_crouch = pygame.image.load("graphics/player/crouch.png").convert_alpha()
+player_crouch = pygame.transform.scale(player_crouch, (100,50))
+is_crouching = False
 
+#Obstacles images
 boulder_surf = pygame.image.load("graphics/enemies/boulder.png").convert_alpha()
 boulder_surf = pygame.transform.scale(boulder_surf,(70,70) )
 boulder_rect_list = [] 
+spear_surf = pygame.image.load("graphics/enemies/spear1.png").convert_alpha()
+spear_surf = pygame.transform.scale(spear_surf, (80,80))
+spear_list = []
+SPEAR_Y = 175
 
 while running:
    # starting event
@@ -94,40 +104,47 @@ while running:
             running = False
 
         if is_playing:
-            # Jump Logic
-            if (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE or 
-                event.type == pygame.MOUSEBUTTONDOWN) and player_rect.bottom >= GROUND_Y:
-                players_gravity_speed = JUMP_GRAVITY_START_SPEED
-            
+            # Jump and crouch Logic
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and player_rect.bottom >= GROUND_Y:
+                    players_gravity_speed = JUMP_GRAVITY_START_SPEED
+                if event.key == pygame.K_DOWN and player_rect.bottom >= GROUND_Y:
+                    is_crouching = True
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_DOWN:
+                    is_crouching = False
+
             # Spawn Egg Logic (triggered by the timer)
             if event.type == boulder_timer and running:
                 obstacles()
         
         else:
-        
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 is_playing = True
                 boulder_rect_list.clear() 
+                spear_list.clear()
                 player_rect.bottom = GROUND_Y
                 players_gravity_speed = 0
                 start_time = pygame.time.get_ticks()
 
     #gameplay
     if is_playing:
-      
         screen.blit(dungeon_background, (0, 0))
-        
         display_score()
-
         players_gravity_speed += 1
         player_rect.y += players_gravity_speed
         if player_rect.bottom > GROUND_Y:
             player_rect.bottom = GROUND_Y
         player_animations()
-        screen.blit(player_surf, player_rect)
+        if is_crouching:
+            bottom = player_rect.bottom
+            player_rect = player_crouch.get_rect(midbottom=(player_rect.centerx, bottom))
+            screen.blit(player_crouch, player_rect)
+        else:
+            screen.blit(player_surf, player_rect)
         boulder_angle += 10
 
-        # Egg Movement and Collision Loop
+        # Boulder Movement and Collision Loop
         for boulder_rect in boulder_rect_list[:]: 
             boulder_rect.x -= 6
             if boulder_rect.right < 0:
@@ -136,9 +153,18 @@ while running:
                 rotated_boulder = pygame.transform.rotate(boulder_surf, boulder_angle)
                 new_rect = rotated_boulder.get_rect(center = boulder_rect.center)
                 screen.blit(rotated_boulder, new_rect)
-                
-            #check for collision
-            if player_rect.colliderect(boulder_rect):
+
+                if player_rect.colliderect(boulder_rect):
+                    is_playing = False
+
+        # Spear Movement and Collision Loop
+        for spear_rect in spear_list[:]:
+            spear_rect.x -= 6
+            if spear_rect.right < 0:
+                spear_list.remove(spear_rect)
+            else:
+                screen.blit(spear_surf, spear_rect)
+            if player_rect.colliderect(spear_rect):
                 is_playing = False
 
     # menu
