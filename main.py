@@ -133,12 +133,8 @@ while running:
             if boulder_rect.right < 0:
                 boulder_rect_list.remove(boulder_rect) # Clean up memory
             else:
-                # --- CHANGED: Rotation Logic ---
-                # 1. Rotate the original surface
                 rotated_boulder = pygame.transform.rotate(boulder_surf, boulder_angle)
-                # 2. Re-center the new rectangle on the old one to prevent wobbling
                 new_rect = rotated_boulder.get_rect(center = boulder_rect.center)
-                # 3. Blit the rotated version
                 screen.blit(rotated_boulder, new_rect)
                 
             #check for collision
