@@ -15,8 +15,10 @@ GROUND_Y = 300
 JUMP_GRAVITY_START_SPEED = -14
 players_gravity_speed = 0
 boulder_angle = 0
+
 # Immunity variables
 immunity = False
+pending_immunity = False
 immunity_start_time = 0
 IMMUNITY_DURATION = 5000
 show_immunity_banner = False
@@ -114,22 +116,21 @@ while running:
 
         elif is_playing:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE  or event.key == pygame.K_UP and player_rect.bottom >= GROUND_Y:
+                if event.key == pygame.K_SPACE and player_rect.bottom >= GROUND_Y:
                     players_gravity_speed = JUMP_GRAVITY_START_SPEED
                 elif event.key == pygame.K_DOWN and player_rect.bottom >= GROUND_Y:
                     is_crouching = True
-                elif event.key == pygame.K_i:  # Press I for immunity
-                    immunity = True
-                    immunity_start_time = pygame.time.get_ticks()
+                elif event.key == pygame.K_i and not immunity and not pending_immunity:
+                    pending_immunity = True
                     show_immunity_banner = True
                     banner_start_time = pygame.time.get_ticks()
-
+                    pygame.event.clear(boulder_timer)
 
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_DOWN:
                     is_crouching = False
 
-            elif event.type == boulder_timer and running:
+            elif event.type == boulder_timer and running and not show_immunity_banner:
                 obstacles()
 
         else:
@@ -137,14 +138,18 @@ while running:
                 is_playing = True
                 boulder_rect_list.clear()
                 spear_list.clear()
+                pygame.event.clear(boulder_timer)
                 player_rect.midbottom = (80, GROUND_Y)
                 players_gravity_speed = 0
                 start_time = pygame.time.get_ticks()
-                immunity = False  # reset immunity on restart
+                immunity = False
+                pending_immunity = False
+                show_immunity_banner = False
                 is_crouching = False
 
     if is_playing:
         screen.blit(dungeon_background, (0, 0))
+
         # IMMUNITY ACTIVATED BANNER
         if show_immunity_banner:
             elapsed = pygame.time.get_ticks() - banner_start_time
@@ -162,11 +167,11 @@ while running:
                 continue   
             else:
                 show_immunity_banner = False
-
-
+                immunity = True
+                immunity_start_time = pygame.time.get_ticks()
+                pending_immunity = False
 
         display_score()
-        # Increase speed but cap at 16
         game_speed = min(16, 6 + current_time // 2)
 
         # Gravity
@@ -174,6 +179,7 @@ while running:
         player_rect.y += players_gravity_speed
         if player_rect.bottom > GROUND_Y:
             player_rect.bottom = GROUND_Y
+
         if immunity:
             elapsed = pygame.time.get_ticks() - immunity_start_time
             remaining_time =  (IMMUNITY_DURATION - elapsed)
