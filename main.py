@@ -10,11 +10,17 @@ start_time = 0
 game_font = pygame.font.Font(pygame.font.get_default_font(), 30)
 current_time = 0
 high_score = 0
-
+is_playing = False
+GROUND_Y = 300
+JUMP_GRAVITY_START_SPEED = -14
+players_gravity_speed = 0
+boulder_angle = 0
 # Immunity variables
 immunity = False
 immunity_start_time = 0
-IMMUNITY_DURATION = 5000  # 5 seconds
+IMMUNITY_DURATION = 5000
+show_immunity_banner = False
+banner_start_time = 0
 
 def display_score():
     global current_time
@@ -32,13 +38,6 @@ def player_animations():
         if player_index >= len(player_run):
             player_index = 0
         player_surf = player_run[int(player_index)]
-
-is_playing = False
-GROUND_Y = 300
-JUMP_GRAVITY_START_SPEED = -16
-players_gravity_speed = 0
-
-boulder_angle = 0
 
 boulder_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(boulder_timer, 1500)
@@ -66,8 +65,8 @@ play_text_rect = play_text.get_rect(center=(400, 300))
 death_text = game_font.render("To play again press space", False, "black")
 death_text_rect = death_text.get_rect(center=(400, 50))
 player_death = pygame.image.load('graphics/player/dead.png')
-player_death = pygame.transform.scale(player_death, (250, 200))
-player_death_rect = player_death.get_rect(center=(400, 175))
+player_death = pygame.transform.scale(player_death, (230, 230))
+player_death_rect = player_death.get_rect(center=(400, 210))
 death_effect = pygame.image.load('graphics/player/deathblood.png')
 death_effect = pygame.transform.scale(death_effect, (250, 200))
 death_effect_rect = death_effect.get_rect(center=(400, 200))
@@ -83,13 +82,10 @@ player_run2 = pygame.transform.scale(player_run2, (100,100))
 player_run = [player_run1, player_run2]
 player_index = 0
 player_surf = player_run[player_index]
-
 player_jump = pygame.image.load("graphics/player/jump.png").convert_alpha()
 player_jump = pygame.transform.scale(player_jump, (100,100))
-
 player_crouch = pygame.image.load("graphics/player/crouch.png").convert_alpha()
 player_crouch = pygame.transform.scale(player_crouch, (100,50))
-
 player_rect = player_run1.get_rect(midbottom=(80, GROUND_Y))
 is_crouching = False
 
@@ -101,30 +97,39 @@ boulder_rect_list = []
 spear_surf = pygame.image.load("graphics/enemies/spear1.png").convert_alpha()
 spear_surf = pygame.transform.scale(spear_surf, (90,30))
 spear_list = []
-SPEAR_Y = 230
+SPEAR_Y = 220
 
 game_speed = 6
 
+# More graphics (Immunity timer)
+immunity_time = IMMUNITY_DURATION/1000
+immunity_timer = game_font.render(f"IMMUNITY:{immunity_time}", False, "White")
+immunity_rect = immunity_timer.get_rect(center = (20,20))
+
+
 while running:
-    for event in pygame.event.get():
+    for event in pygame.event.get(): 
         if event.type == pygame.QUIT:
             running = False
 
-        if is_playing:
+        elif is_playing:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and player_rect.bottom >= GROUND_Y:
+                if event.key == pygame.K_SPACE  or event.key == pygame.K_UP and player_rect.bottom >= GROUND_Y:
                     players_gravity_speed = JUMP_GRAVITY_START_SPEED
-                if event.key == pygame.K_DOWN and player_rect.bottom >= GROUND_Y:
+                elif event.key == pygame.K_DOWN and player_rect.bottom >= GROUND_Y:
                     is_crouching = True
-                if event.key == pygame.K_i:  # Press I for immunity
+                elif event.key == pygame.K_i:  # Press I for immunity
                     immunity = True
                     immunity_start_time = pygame.time.get_ticks()
+                    show_immunity_banner = True
+                    banner_start_time = pygame.time.get_ticks()
 
-            if event.type == pygame.KEYUP:
+
+            elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_DOWN:
                     is_crouching = False
 
-            if event.type == boulder_timer and running:
+            elif event.type == boulder_timer and running:
                 obstacles()
 
         else:
@@ -140,8 +145,27 @@ while running:
 
     if is_playing:
         screen.blit(dungeon_background, (0, 0))
-        display_score()
+        # IMMUNITY ACTIVATED BANNER
+        if show_immunity_banner:
+            elapsed = pygame.time.get_ticks() - banner_start_time
 
+            if elapsed < 2000:
+                colors = ["red", "yellow", "orange", "white"]
+                color = colors[(elapsed // 150) % len(colors)]
+
+                banner = game_font.render("IMMUNITY ACTIVATED!", True, color)
+                banner_rect = banner.get_rect(center=(400, 200))
+                screen.blit(banner, banner_rect)
+        
+                pygame.display.flip()
+                clock.tick(60)
+                continue   
+            else:
+                show_immunity_banner = False
+
+
+
+        display_score()
         # Increase speed but cap at 16
         game_speed = min(16, 6 + current_time // 2)
 
@@ -150,6 +174,12 @@ while running:
         player_rect.y += players_gravity_speed
         if player_rect.bottom > GROUND_Y:
             player_rect.bottom = GROUND_Y
+        if immunity:
+            elapsed = pygame.time.get_ticks() - immunity_start_time
+            remaining_time =  (IMMUNITY_DURATION - elapsed)
+            seconds_left = max(0,remaining_time//1000)
+            immunity_text = game_font.render(f"IMMUNITY:{seconds_left}", False, "white")
+            screen.blit(immunity_text, (20,20))
 
         player_animations()
 
