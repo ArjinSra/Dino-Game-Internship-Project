@@ -23,6 +23,8 @@ show_immunity_banner = False
 banner_start_time = 0
 
 bg_x = 0
+background_moving = True
+MIN_OBSTACLE_GAP = 250
 
 def display_score():
     global current_time
@@ -45,24 +47,34 @@ boulder_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(boulder_timer, 1500)
 
 def obstacles():
-    global boulder_timer
+    last_x = 0
+    if boulder_rect_list:
+        last_x = boulder_rect_list[-1].x
+    elif spear_list:
+        last_x = spear_list[-1].x
+
+    spawn_x = randint(900, 1100)
+    if spawn_x - last_x < MIN_OBSTACLE_GAP:
+        return
+
     if randint(0,1) == 0:
-        new_rect = boulder_surf.get_rect(bottomleft=(randint(900, 1100), 312))
+        new_rect = boulder_surf.get_rect(bottomleft=(spawn_x, 312))
         boulder_rect_list.append(new_rect)
     else:
-        new_rect = spear_surf.get_rect(midbottom=(randint(900,1100), SPEAR_Y))
+        new_rect = spear_surf.get_rect(midbottom=(spawn_x, SPEAR_Y))
         spear_list.append(new_rect)
-    pygame.time.set_timer(boulder_timer, randint(900, 1600))
 
+menu_background = pygame.image.load("graphics/level/menu_background.png")
+menu_background_rect = menu_background.get_rect(topleft = (0,0))
 start_player = pygame.image.load("graphics/player/start_player.png")
 start_player = pygame.transform.scale(start_player, (180, 200))
 start_player_rect = start_player.get_rect(center=(400, 200))
-start_text = game_font.render("Dungeon runner", False, "black")
+start_text = game_font.render("Dungeon runner", False, "white")
 start_text_rect = start_text.get_rect(center=(400, 50))
-play_text = game_font.render("Press space to start", False, "Black")
+play_text = game_font.render("Press space to start", False, "white")
 play_text_rect = play_text.get_rect(center=(400, 300))
 
-death_text = game_font.render("To play again press space", False, "black")
+death_text = game_font.render("To play again press space", False, "white")
 death_text_rect = death_text.get_rect(center=(400, 50))
 player_death = pygame.image.load('graphics/player/dead.png')
 player_death = pygame.transform.scale(player_death, (230, 230))
@@ -107,7 +119,7 @@ while running:
 
         elif is_playing:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and player_rect.bottom >= GROUND_Y:
+                if (event.key == pygame.K_SPACE or event.key == pygame.K_UP) and player_rect.bottom >= GROUND_Y:
                     players_gravity_speed = JUMP_GRAVITY_START_SPEED
                 elif event.key == pygame.K_DOWN and player_rect.bottom >= GROUND_Y:
                     is_crouching = True
@@ -115,6 +127,7 @@ while running:
                     pending_immunity = True
                     show_immunity_banner = True
                     banner_start_time = pygame.time.get_ticks()
+                    background_moving = False
                     pygame.event.clear(boulder_timer)
 
             elif event.type == pygame.KEYUP:
@@ -139,9 +152,10 @@ while running:
                 show_immunity_banner = False
                 is_crouching = False
                 bg_x = 0
+                background_moving = True
 
     if is_playing:
-        if not immunity and not show_immunity_banner:
+        if background_moving:
             bg_x -= 3
             if bg_x <= -800:
                 bg_x = 0
@@ -165,10 +179,11 @@ while running:
                 immunity = True
                 immunity_start_time = pygame.time.get_ticks()
                 pending_immunity = False
+                background_moving = True
                 pygame.time.set_timer(boulder_timer, randint(900, 1600))
 
         display_score()
-        game_speed = min(16, 6 + current_time // 2)
+        game_speed = min(19, 6 + current_time // 2)
 
         players_gravity_speed += 1
         player_rect.y += players_gravity_speed
@@ -221,7 +236,7 @@ while running:
 
     else:
         if current_time == 0:
-            screen.fill("white")
+            screen.blit(menu_background,menu_background_rect)
             screen.blit(play_text, play_text_rect)
             screen.blit(start_player, start_player_rect)
             screen.blit(start_text, start_text_rect)
@@ -234,7 +249,7 @@ while running:
             screen.blit(player_death, player_death_rect)
             screen.blit(death_text, death_text_rect)
 
-        high_score_text = game_font.render(f"High score: {high_score}", False, "black")
+        high_score_text = game_font.render(f"High score: {high_score}", False, "white")
         high_score_rect = high_score_text.get_rect(midbottom=(400, 380))
         screen.blit(high_score_text, high_score_rect)
 
